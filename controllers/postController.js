@@ -93,6 +93,7 @@ const likeUnlike = async (req, res) => {
   }
 };
 
+//implementation of aggregation
 const aggregation = async (req, res) => {
   try {
     const allPosts = await Post.find();
