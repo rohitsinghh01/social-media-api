@@ -1,4 +1,6 @@
 const Post = require('../models/PostModel');
+const commentModel = require('../models/commentModel');
+const userModel = require('../models/userModel');
 
 // create a new Post
 const createPost = async (req, res) => {
@@ -21,9 +23,9 @@ const createPost = async (req, res) => {
 // delete a Post
 const deletePost = async (req, res) => {
   try {
-    const Post = await Post.findById(req.params.id);
-    if (req.user._id === Post.user.toString() || req.user.role === 'admin') {
-      await Comment.deleteMany({ user: req.user._id });
+    const Posts = await Post.findById(req.params.id);
+    if (req.user._id === Posts.user.toString() || req.user.role === 'admin') {
+      await commentModel.deleteMany({ user: req.user._id });
       await Post.findByIdAndDelete(req.params.id);
       res.status(200).send({
         status: 'success',
@@ -46,12 +48,12 @@ const deletePost = async (req, res) => {
 // update a Post
 const updatePost = async (req, res) => {
   try {
-    const Post = await Post.findById(req.params.id);
-    if (req.user._id === Post.user.toString()) {
+    const Posts = await Post.findById(req.params.id);
+    if (req.user._id === Posts.user.toString()) {
       await Post.updateOne({ $set: req.body });
       res.status(200).send({
         status: 'success',
-        message: 'Post updated',
+        message: 'Post updated',  
       });
     } else {
       res.status(401).send({
@@ -69,8 +71,8 @@ const updatePost = async (req, res) => {
 // like and unlike a Post
 const likeUnlike = async (req, res) => {
   try {
-    const Post = await Post.findById(req.params.id);
-    if (!Post.likes.includes(req.user._id)) {
+    const Posts = await Post.findById(req.params.id);
+    if (!Posts.likes.includes(req.user._id)) {
       await Post.updateOne({ $push: { likes: req.user._id } });
       res.status(200).send({
         status: 'success',
@@ -90,4 +92,52 @@ const likeUnlike = async (req, res) => {
     });
   }
 };
-module.exports = { createPost, deletePost, updatePost, likeUnlike };
+
+const aggregation = async (req, res) => {
+  try {
+    const allPosts = await Post.find();
+    const Post_count = {};
+
+    allPosts.forEach((post) => {
+      if (!Post_count[post.user]) {
+        Post_count[post.user] = 1;
+      } else {
+        Post_count[post.user]++;
+      }
+    });
+
+    const user = await userModel.find({}, '_id');
+    // console.log(user)
+    user.forEach((post) => {
+      if (!Post_count[post._id]) {
+        Post_count[post._id] = 0;
+      }
+    });
+
+    const User_Post_Counts = [];
+    for (const userId in Post_count) {
+      const user = await userModel.findById(userId);
+      if (user) {
+        User_Post_Counts.push({
+          _id: user._id,
+          username: user.username,
+          postCount: Post_count[userId],
+        });
+      }
+    }
+
+    res.status(200).json(User_Post_Counts);
+  } catch (e) {
+    res.status(500).send({
+      status: 'failure',
+      message: e.message,
+    });
+  }
+};
+module.exports = {
+  createPost,
+  deletePost,
+  updatePost,
+  likeUnlike,
+  aggregation,
+};

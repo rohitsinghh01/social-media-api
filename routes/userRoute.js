@@ -22,7 +22,7 @@ router.delete('/logout', logout);
 // test for working of jwt
 router.get('/confidential', verifyAccessToken, confidential);
 router.get('/:id', getUser);
-router.get('/:username', getUserByUsername);
+router.get('/username/:username', getUserByUsername); 
 router.get('/followings/:username', getFollowings);
 router.get('/followers/:username', getFollowers);
 router.put('/:username/follow', verifyAccessToken, followUser);
